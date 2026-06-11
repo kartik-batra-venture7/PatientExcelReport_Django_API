@@ -8,7 +8,7 @@ audit report containing:
 - Caregiver / patient names and contract
 - Day and date (Sun – Sat)
 - Personal care code validation
-- Mobile text note validation (including banned-word detection and copy-paste detection)
+- Mobile text note validation
 - Patient and caregiver signature presence (`signed` / `unsigned`)
 - GPS coordinates from start/end times (when present)
 - Service type (`cls`, `respite`, or `cls, respite`)
@@ -20,7 +20,7 @@ audit report containing:
 
 | Method | URL | Description |
 |--------|-----|-------------|
-| POST | `/api/Patient/CheckSignatureFile` | Legacy simple check – returns `{sheet1: {date: "signed"\|"unsigned"}}` |
+| POST | `/api/Patient/CheckSignatureFile` | Simple check – returns `{sheet1: {date: "signed"\|"unsigned"}}` |
 | POST | `/api/PatientReaderReport/CheckSignatureFilePath` | Full audit from a server-side file path (query param `filePath`) |
 | POST | `/api/PatientReaderReport/CheckSignatureFileUpload` | Full audit from uploaded `.xlsx` or base64 `.txt` |
 | POST | `/api/PatientReaderReport/CheckSignatureFromBase64String` | Full audit from base64 JSON body (query param `filename`) |
@@ -38,7 +38,7 @@ audit report containing:
 ### Install
 
 ```bash
-git clone <repo_url>
+git clone https://github.com/kartik-batra-venture7/PatientExcelReport_Django_API.git
 cd PatientExcelReport_Django_API
 
 python -m venv .venv
