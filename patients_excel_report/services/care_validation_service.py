@@ -9,37 +9,16 @@ Returns a 3-tuple: (pc_status, mobile_status, validation_result)
 
 import re
 from typing import Optional
+from config.settings import _DENIED_CLS_PATTERNS, _DENIED_RESPITE_PATTERNS, _VALID_CODES, _VALID_RESPITE_PC_CODES
 
 
 # ---------------------------------------------------------------------------
-# Denied-word lists  (mirrors the C# static arrays)
+# Denied-word lists shifted to config/settings.py
 # ---------------------------------------------------------------------------
-_DENIED_CLS_WORDS = [
-    "hospital", "medication", "medicine", "sleep", "tv", "television",
-    "doctor", "appointment", "hit", "attack", "police", "assault",
-    "knife", "weapon", "nap", "asleep",
-]
-
-_DENIED_RESPITE_WORDS = [
-    "Hospital", "Appointment", "Hit", "Attack", "Police",
-    "Assault", "Knife", "Weapon", "doctor",
-]
-
-_DENIED_CLS_PATTERNS = [
-    re.compile(rf"\b{re.escape(w)}\b", re.IGNORECASE) for w in _DENIED_CLS_WORDS
-]
-_DENIED_RESPITE_PATTERNS = [
-    re.compile(rf"\b{re.escape(w)}\b", re.IGNORECASE) for w in _DENIED_RESPITE_WORDS
-]
-
-# Valid personal-care codes
-_VALID_CODES: set[str] = {"01", "02", "03", "04", "05", " ", ""}
-_VALID_RESPITE_PC_CODES: set[str] = {"01", "02", "03", "04", "05"}
 
 
 class CareValidationService:
     """Validates Personal Care codes and Mobile Text Note content."""
-
     # ------------------------------------------------------------------
     # Single-value validate  (used by legacy ExcelProcessor / PatientController)
     # ------------------------------------------------------------------

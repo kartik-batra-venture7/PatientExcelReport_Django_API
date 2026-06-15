@@ -6,6 +6,7 @@ Compatible with Python 3.13.1 / Django 5.1.x
 import os
 from pathlib import Path
 from decouple import config
+import re
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -67,8 +68,32 @@ DATABASES = {
     }
 }
 
-# To use SQL Server (same as .NET original), set these in .env and
-# switch ENGINE to "mssql" (requires django-mssql-backend or pymssql):
+# ---------------------------------------------------------------------------
+# Denied-word lists
+# ---------------------------------------------------------------------------
+_DENIED_CLS_WORDS = [
+    "hospital", "medication", "medicine", "sleep", "tv", "television",
+    "doctor", "appointment", "hit", "attack", "police", "assault",
+    "knife", "weapon", "nap", "asleep",
+]
+
+_DENIED_RESPITE_WORDS = [
+    "Hospital", "Appointment", "Hit", "Attack", "Police",
+    "Assault", "Knife", "Weapon", "doctor",
+]
+
+_DENIED_CLS_PATTERNS = [
+    re.compile(rf"\b{re.escape(w)}\b", re.IGNORECASE) for w in _DENIED_CLS_WORDS
+]
+_DENIED_RESPITE_PATTERNS = [
+    re.compile(rf"\b{re.escape(w)}\b", re.IGNORECASE) for w in _DENIED_RESPITE_WORDS
+]
+
+# Valid personal-care codes
+_VALID_CODES: set[str] = {"01", "02", "03", "04", "05", " ", ""}
+_VALID_RESPITE_PC_CODES: set[str] = {"01", "02", "03", "04", "05"}
+
+# To use SQL Server set these in .env and switch ENGINE to "mssql" (requires django-mssql-backend or pymssql):
 #
 #   DB_ENGINE=mssql
 #   DB_NAME=Logging
@@ -125,7 +150,7 @@ PATIENT_SIGNATURE_TEMP_DIR = config(
 )
 
 # ------------------------------------------------------------------
-# Excel processing settings  (mirrors appsettings.json)
+# Excel processing settings
 # ------------------------------------------------------------------
 EXCEL_PROCESSING = {
     "MAX_DEGREE_OF_PARALLELISM": config("MAX_DEGREE_OF_PARALLELISM", default=4, cast=int),
@@ -133,7 +158,7 @@ EXCEL_PROCESSING = {
 }
 
 # ------------------------------------------------------------------
-# Logging  (mirrors nlog.config – file + optional DB)
+# Logging
 # ------------------------------------------------------------------
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
