@@ -74,11 +74,35 @@ def _column_letter_from_index(zero_based_index: int) -> str:
 def _safe_str(val) -> str:
     return str(val).strip() if val is not None else ""
 
+def _format_time(raw: str) -> str:
+    if not raw:
+        return raw
+
+    # openpyxl returns Excel time fractions as floats (0.0 - 1.0)
+    try:
+        fraction = float(raw)
+        if 0.0 <= fraction < 1.0:
+            total_minutes = round(fraction * 24 * 60)
+            hh = total_minutes // 60
+            mm = total_minutes % 60
+            return f"{hh:02d}:{mm:02d}"
+    except (ValueError, TypeError):
+        pass
+
+    # Strip non-digit chars to normalise "09:00", "9.00", "0900"
+    digits = "".join(c for c in raw if c.isdigit())
+
+    if len(digits) == 3:      # "900"  → "09:00"
+        digits = digits.zfill(4)
+    if len(digits) == 4:      # "0900" → "09:00"
+        return f"{digits[:2]}:{digits[2:]}"
+
+    return raw  # already formatted or unrecognised
+
 
 class ExcelReaderService:
     """
     Processes an .xlsx file and returns a list of ReportRow dicts.
-    Mirrors the behaviour of ExcelReaderService.ProcessFile().
     """
 
     def __init__(
@@ -333,7 +357,7 @@ class ExcelReaderService:
                         st_label = _safe_str(st_row[0])
                         st_val = _safe_str(st_row[col_index])
                         if st_label == "Start Time":
-                            start_time = st_val
+                            start_time = _format_time(st_val)
                         elif st_label == "Start Time (GPS Coordinates)":
                             if len(st_val) >= 4:
                                 start_time = st_val[:4]
@@ -347,7 +371,7 @@ class ExcelReaderService:
                         et_label = _safe_str(et_row[0])
                         et_val = _safe_str(et_row[col_index])
                         if et_label == "End Time":
-                            end_time = et_val
+                            end_time = _format_time(et_val)
                         elif et_label == "End Time (GPS Coordinates)":
                             if len(et_val) >= 4:
                                 end_time = et_val[:4]
@@ -374,6 +398,8 @@ class ExcelReaderService:
                     "caregiverSignatureStatus": caregiver_signature_status,
                     "validationResult": final_result,
                     "highlightColumn": highlight,
+                    "startTime": start_time,
+                    "endTime": end_time,
                     "startTimeGPSCoordinates": start_time_gps,
                     "endTimeGPSCoordinates": end_time_gps,
                     "isCopyPasted": is_likely_copy_paste,
