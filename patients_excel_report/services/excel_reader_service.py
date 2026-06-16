@@ -4,8 +4,8 @@ Port of ExcelReaderService.cs
 The main Excel processing engine used by PatientReaderReportController.
 For every sheet in the workbook it:
   1. Locates the header row (Sun/Mon/Sat labels)
-  2. Finds the "Patient Signature" and "Caregiver Signature" rows
-  3. Extracts caregiver, patient, contract, caregiver-id metadata
+  2. Finds the "Patient Signature" and "Service Provider Signature" rows
+  3. Extracts service_provider_name, patient, contract, caregiver-id metadata
   4. For each of the 7 day columns (F, H, K, N, O, T, W):
      - reads date, personal-care code(s), mobile text note
      - detects copy-paste in mobile notes via text similarity
@@ -193,7 +193,7 @@ class ExcelReaderService:
 
         # ---- Extract metadata ----
         caregiver_id = self._extract_value_from_buffer(sheet_data, "Code", search_next_row=True)
-        caregiver = self._extract_value_from_buffer(sheet_data, "Caregiver Name", search_next_row=True)
+        service_provider_name = self._extract_value_from_buffer(sheet_data, "Service Provider Name", search_next_row=True)
         patient = self._extract_value_from_buffer(sheet_data, "Patient Name:", search_next_row=False)
         contract = self._extract_contract(sheet_data)
 
@@ -204,7 +204,7 @@ class ExcelReaderService:
                 combined = _normalize_whitespace(
                     " ".join(_safe_str(row[c]) for c in range(min(5, len(row))))
                 )
-                if combined.lower() == "caregiver signature":
+                if combined.lower() == "service provider signature":
                     caregiver_sig_row = r_idx
                     break
             if caregiver_sig_row == -1:
@@ -262,11 +262,10 @@ class ExcelReaderService:
                 for pc_row_idx in personal_care_row_indices:
                     row = sheet_data[pc_row_idx]
                     if col_index < len(row):
-                        val = _safe_str(row[col_index])
-                        if val:
-                            pc_values.append(val)
-                            desc = _safe_str(row[2]) if len(row) > 2 else ""
-                            pc_descs_and_values.append((pc_row_idx, col_index, desc, val))
+                        val = str(row[col_index]).strip() if row[col_index] is not None else ""
+                        pc_values.append(val)
+                        desc = _safe_str(row[2]) if len(row) > 2 else ""
+                        pc_descs_and_values.append((pc_row_idx, col_index, desc, val))
 
                 # Mobile Text Note
                 mobile = ""
@@ -335,7 +334,7 @@ class ExcelReaderService:
                     else "unsigned"
                 )
 
-                # Signature detection – caregiver
+                # Signature detection – service_provider_name
                 cg_cell_addr = (
                     _column_letter_from_index(col_index) + str(caregiver_sig_row + 1)
                     if caregiver_sig_row >= 0
@@ -387,7 +386,7 @@ class ExcelReaderService:
 
                 return {
                     "sheetName": sheet_name,
-                    "caregiver": caregiver,
+                    "service_provider_name": service_provider_name,
                     "patient": patient,
                     "contracts": contract,
                     "day": day_key,
@@ -481,7 +480,7 @@ class ExcelReaderService:
     def _extract_contract(sheet_data: list[list]) -> str:
         for row in sheet_data:
             for j, cell in enumerate(row):
-                if _safe_str(cell).strip().lower() == "contract(s):":
+                if _safe_str(cell).strip().lower() == "payer(s):":
                     # +4 first, then +1
                     if j + 4 < len(row):
                         v = _safe_str(row[j + 4])
@@ -498,7 +497,7 @@ class ExcelReaderService:
         for r_idx, row in enumerate(sheet_data):
             if not row:
                 continue
-            first = _safe_str(row[0])
+            first = _safe_str(row[0]).strip()
             if first.lower().startswith(label.lower()):
                 return r_idx
         return -1

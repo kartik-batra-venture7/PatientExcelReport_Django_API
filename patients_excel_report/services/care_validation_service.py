@@ -141,22 +141,23 @@ class CareValidationService:
         if pc_values is None:
             pc_values = []
 
-        has_error = any(
-            v and v.strip() and v not in _VALID_CODES for v in pc_values
-        )
-        has_valid = any(v in _VALID_CODES for v in pc_values)
         has_any_value = any(v and v.strip() for v in pc_values)
+        has_invalid   = any(v and v.strip() and v.strip() not in _VALID_CODES for v in pc_values)
+        has_missing   = any(not v or not v.strip() for v in pc_values)
+        all_valid     = all(v and v.strip() in _VALID_CODES for v in pc_values) if pc_values else False
 
         if not is_personal_care_column_present:
             pc_status = "No duties performed"
-        elif has_error:
-            pc_status = "Wrong values inserted"
-        elif has_valid:
-            pc_status = "OK"
         elif not has_any_value:
             pc_status = "No value inserted"
+        elif has_invalid:
+            pc_status = "Wrong value inserted"
+        elif has_missing:
+            pc_status = "Missing value"
+        elif all_valid:
+            pc_status = "OK"
         else:
-            pc_status = ""
+            pc_status = "Invalid combination of values"
 
         # Mobile validation reuses single-value logic
         _, mobile_status, _ = self.validate(

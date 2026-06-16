@@ -90,7 +90,7 @@ _DENIED_RESPITE_PATTERNS = [
 ]
 
 # Valid personal-care codes
-_VALID_CODES: set[str] = {"01", "02", "03", "04", "05", " ", ""}
+_VALID_CODES: set[str] = {"01", "02", "03", "04", "05", "P", "p", "1", "2", "3", "4", "5"}
 _VALID_RESPITE_PC_CODES: set[str] = {"01", "02", "03", "04", "05"}
 
 # To use SQL Server set these in .env and switch ENGINE to "mssql" (requires django-mssql-backend or pymssql):
