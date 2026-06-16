@@ -197,18 +197,17 @@ class ExcelReaderService:
         patient = self._extract_value_from_buffer(sheet_data, "Patient Name:", search_next_row=False)
         contract = self._extract_contract(sheet_data)
 
-        # ---- Find "Caregiver Signature" row (only for certain contracts) ----
+        # ---- Find "Service Provider Signature" row (only for certain contracts) ----
         caregiver_sig_row = -1
-        if contract.strip() in CONTRACTS_WITH_CAREGIVER_SIG:
-            for r_idx, row in enumerate(sheet_data):
-                combined = _normalize_whitespace(
-                    " ".join(_safe_str(row[c]) for c in range(min(5, len(row))))
-                )
-                if combined.lower() == "service provider signature":
-                    caregiver_sig_row = r_idx
-                    break
-            if caregiver_sig_row == -1:
-                return []
+        for r_idx, row in enumerate(sheet_data):
+            combined = _normalize_whitespace(
+                " ".join(_safe_str(row[c]) for c in range(min(5, len(row))))
+            )
+            if combined.lower() == "service provider signature":
+                caregiver_sig_row = r_idx
+                break
+        if caregiver_sig_row == -1:
+            return []
 
         # ---- Personal Care rows ----
         personal_care_row_indices: list[int] = []
