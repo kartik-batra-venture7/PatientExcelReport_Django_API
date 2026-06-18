@@ -102,6 +102,15 @@ def _find_patient_signature_row_number(ws) -> int:
             return r
     return 0
 
+def _find_caregiver_signature_row_number(ws) -> int:
+    last_row = ws.max_row or 0
+    for r in range(1, last_row + 1):
+        combined = _normalize_whitespace(
+            " ".join(str(ws.cell(row=r, column=c).value or "") for c in range(1, 6))
+        )
+        if combined.lower() == "caregiver signature":
+            return r
+    return 0
 
 def _process_excel_file(excel_path: str) -> dict:
     """
@@ -110,15 +119,16 @@ def _process_excel_file(excel_path: str) -> dict:
     """
     from openpyxl import load_workbook
 
-    output: dict[str, dict[str, str]] = {}
+    output = {}
 
     wb = load_workbook(excel_path, data_only=True)
 
     for sheet_num, sheet_name in enumerate(wb.sheetnames, start=1):
         ws = wb[sheet_name]
 
+        caregiver_row = _find_caregiver_signature_row_number(ws)
         sig_row_num = _find_patient_signature_row_number(ws)
-        if sig_row_num == 0:
+        if sig_row_num == 0 and caregiver_row == 0:
             continue
 
         # Dates from row 15 for each day column
@@ -131,21 +141,28 @@ def _process_excel_file(excel_path: str) -> dict:
         # Extract images for this sheet
         images = extract_images_anchored_to_worksheet(excel_path, sheet_name)
 
-        sheet_result: dict[str, str] = {}
+        caregiver_result: dict[str, str] = {}
+        patient_result: dict[str, str] = {}
         for col_letter, day_key in DAY_COLUMNS:
-            cell_addr = f"{col_letter}{sig_row_num}"
             date_label = date_map.get(col_letter, day_key)
 
-            img_bytes = images.get(cell_addr)
-            if img_bytes:
-                non_empty_pct = _analyze_image(img_bytes)
-                signed = non_empty_pct > 0.0
-            else:
-                signed = False
+            if caregiver_row:
+                img_bytes = images.get(f"{col_letter}{caregiver_row}")
+                caregiver_result[date_label] = (
+                    "signed" if img_bytes and _analyze_image(img_bytes) > 0.0 else "unsigned"
+                )
+            
+            if sig_row_num:
+                img_bytes = images.get(f"{col_letter}{sig_row_num}")
+                patient_result[date_label] = (
+                    "signed" if img_bytes and _analyze_image(img_bytes) > 0.0 else "unsigned"
+                )
+            cell_addr = f"{col_letter}{sig_row_num}"
 
-            sheet_result[date_label] = "signed" if signed else "unsigned"
-
-        output[f"sheet{sheet_num}"] = sheet_result
+        output[f"sheet{sheet_num}"] = {
+            "caregiver_signature": caregiver_result,
+            "patient_signature": patient_result,
+        }
 
     wb.close()
     return output

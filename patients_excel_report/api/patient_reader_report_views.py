@@ -37,7 +37,6 @@ from drf_spectacular.types import OpenApiTypes
 
 from patients_excel_report.services.excel_reader_service import ExcelReaderService
 from patients_excel_report.services.logging_service import LoggingService
-from datetime import datetime
 
 logger = logging.getLogger("patients_excel_report.patient_reader_report_view")
 
@@ -131,6 +130,7 @@ class CheckSignatureFilePathView(APIView):
         responses={200: {"type": "array", "items": {"type": "object"}}},
     )
     def post(self, request: Request) -> Response:
+        start_time = time.time()
         file_path = request.query_params.get("filePath", "").strip()
         logger.info("CheckSignatureFilePath called with path: %s", file_path)
 
@@ -157,22 +157,35 @@ class CheckSignatureFilePathView(APIView):
             logger.debug("Temp file saved: %s", temp)
             rows = _reader.process_file(temp)
             logger.debug("Excel file processed successfully.")
-            _logging_service.write_api_execution_log(
-                "CheckSignatureFilePath",
-                os.path.basename(file_path),
-                "",
-                json.dumps(rows),
-                200,
-                True,
-                datetime.utcnow(),
+            elapsed_ms = round((time.time() - start_time) * 1000)
+            _logging_service.log(
+                api_name="CheckSignatureFilePath",
+                file_name=file_path,
+                status_code=200,
+                is_success=True,
+                request_method=request.method,
+                request_url=request.build_absolute_uri(),
+                response_payload=json.dumps(rows),
+                processing_time_ms=elapsed_ms,
+                sheets_processed=len({r.get("sheetName") for r in rows}),
+                rows_generated=len(rows),
+                client_ip=request.META.get("REMOTE_ADDR", ""),
             )
             return Response(rows, status=status.HTTP_200_OK)
         except Exception as exc:
-            logger.error("Error processing file: %s", exc)
-            return Response(
-                f"Error processing file: {exc}",
-                status=status.HTTP_400_BAD_REQUEST,
+            elapsed_ms = round((time.time() - start_time) * 1000)
+            _logging_service.log(
+                api_name="CheckSignatureFilePath",
+                file_name=file_path,
+                status_code=400,
+                is_success=False,
+                request_method=request.method,
+                request_url=request.build_absolute_uri(),
+                error_message=str(exc),
+                processing_time_ms=elapsed_ms,
+                client_ip=request.META.get("REMOTE_ADDR", ""),
             )
+            return Response(f"Error processing file: {exc}", status=status.HTTP_400_BAD_REQUEST)
         finally:
             _try_delete(temp)
             logger.debug("Temp file deleted: %s", temp)
@@ -207,6 +220,7 @@ class CheckSignatureFileUploadView(APIView):
         responses={200: {"type": "array", "items": {"type": "object"}}},
     )
     def post(self, request: Request) -> Response:
+        start_time = time.time()
         file = request.FILES.get("file")
         logger.debug("CheckSignatureFileUpload called with file: %s", file)
 
@@ -243,22 +257,36 @@ class CheckSignatureFileUploadView(APIView):
             logger.debug("Temp file saved: %s", temp)
             rows = _reader.process_file(temp)
             logger.debug("Excel file processed successfully.")
-            _logging_service.write_api_execution_log(
-                "CheckSignatureFileUpload",
-                fname,
-                "",
-                json.dumps(rows),
-                200,
-                True,
-                datetime.utcnow(),
+            elapsed_ms = round((time.time() - start_time) * 1000)
+            _logging_service.log(
+                api_name="CheckSignatureFileUpload",
+                file_name=fname,
+                status_code=200,
+                is_success=True,
+                request_method=request.method,
+                request_url=request.build_absolute_uri(),
+                response_payload=json.dumps(rows),
+                processing_time_ms=elapsed_ms,
+                sheets_processed=len({r.get("sheetName") for r in rows}),
+                rows_generated=len(rows),
+                client_ip=request.META.get("REMOTE_ADDR", ""),
             )
             return Response(rows, status=status.HTTP_200_OK)
         except Exception as exc:
             logger.error("Error processing file: %s", exc)
-            return Response(
-                f"Error processing file: {exc}",
-                status=status.HTTP_400_BAD_REQUEST,
+            elapsed_ms = round((time.time() - start_time) * 1000)
+            _logging_service.log(
+                api_name="CheckSignatureFileUpload",
+                file_name=fname,
+                status_code=400,
+                is_success=False,
+                request_method=request.method,
+                request_url=request.build_absolute_uri(),
+                error_message=str(exc),
+                processing_time_ms=elapsed_ms,
+                client_ip=request.META.get("REMOTE_ADDR", ""),
             )
+            return Response(f"Error processing file: {exc}", status=status.HTTP_400_BAD_REQUEST)
         finally:
             _try_delete(temp)
             logger.info("Temp file deleted: %s", temp)
@@ -294,6 +322,7 @@ class CheckSignatureFromBase64StringView(APIView):
         responses={200: {"type": "array", "items": {"type": "object"}}},
     )
     def post(self, request: Request) -> Response:
+        start_time = time.time()
         filename = request.query_params.get("filename", "unknown.xlsx")
         logger.debug("CheckSignatureFromBase64String called with filename: %s", filename)
 
@@ -317,22 +346,36 @@ class CheckSignatureFromBase64StringView(APIView):
             logger.debug("Temp file saved: %s", temp)
             rows = _reader.process_file(temp)
             logger.debug("Excel file processed successfully.")
-            _logging_service.write_api_execution_log(
-                "CheckSignatureFromBase64String",
-                filename,
-                "",
-                json.dumps(rows),
-                200,
-                True,
-                datetime.utcnow(),
+            elapsed_ms = round((time.time() - start_time) * 1000)
+            _logging_service.log(
+                api_name="CheckSignatureFromBase64String",
+                file_name=filename,
+                status_code=200,
+                is_success=True,
+                request_method=request.method,
+                request_url=request.build_absolute_uri(),
+                response_payload=json.dumps(rows),
+                processing_time_ms=elapsed_ms,
+                sheets_processed=len({r.get("sheetName") for r in rows}),
+                rows_generated=len(rows),
+                client_ip=request.META.get("REMOTE_ADDR", ""),
             )
             return Response(rows, status=status.HTTP_200_OK)
         except Exception as exc:
             logger.error("Error processing file: %s", exc)
-            return Response(
-                f"Error processing file: {exc}",
-                status=status.HTTP_400_BAD_REQUEST,
+            elapsed_ms = round((time.time() - start_time) * 1000)
+            _logging_service.log(
+                api_name="CheckSignatureFromBase64String",
+                file_name=filename,
+                status_code=400,
+                is_success=False,
+                request_method=request.method,
+                request_url=request.build_absolute_uri(),
+                error_message=str(exc),
+                processing_time_ms=elapsed_ms,
+                client_ip=request.META.get("REMOTE_ADDR", ""),
             )
+            return Response(f"Error processing file: {exc}", status=status.HTTP_400_BAD_REQUEST)
         finally:
             _try_delete(temp)
             logger.info("Temp file deleted: %s", temp)

@@ -65,6 +65,10 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+    },
+    "logs_db": {
+        "ENGINE": "django.db.backends.sqlite3",  # overridden below if SQL Server configured
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
@@ -93,14 +97,16 @@ _DENIED_RESPITE_PATTERNS = [
 _VALID_CODES: set[str] = {"01", "02", "03", "04", "05", "P", "p", "1", "2", "3", "4", "5"}
 _VALID_RESPITE_PC_CODES: set[str] = {"01", "02", "03", "04", "05"}
 
-# To use SQL Server set these in .env and switch ENGINE to "mssql" (requires django-mssql-backend or pymssql):
-#
-#   DB_ENGINE=mssql
-#   DB_NAME=Logging
-#   DB_HOST=(localdb)\MSSQLLocalDB
-#   DB_USER=
-#   DB_PASSWORD=
-#   DB_TRUSTED_CONNECTION=yes
+# SQL SERVER IMPORTS
+
+MSSQL_CONFIG = {
+    "SERVER":   config("MSSQL_SERVER",   default="DEVILSBOSS"),
+    "PORT":     config("MSSQL_PORT",     default="1433"),
+    "DATABASE": config("MSSQL_DATABASE", default="PatientsExcelReportLogs"),
+    "USER":     config("MSSQL_USER",     default=""),
+    "PASSWORD": config("MSSQL_PASSWORD", default=""),
+    "TRUSTED_CONNECTION": config("MSSQL_TRUSTED_CONNECTION", default=True, cast=bool),
+}
 
 # ------------------------------------------------------------------
 # Internationalization
