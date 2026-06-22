@@ -95,7 +95,7 @@ _DENIED_RESPITE_PATTERNS = [
 
 # Valid personal-care codes
 _VALID_CODES: set[str] = {"01", "02", "03", "04", "05", "P", "p", "1", "2", "3", "4", "5"}
-_VALID_RESPITE_PC_CODES: set[str] = {"01", "02", "03", "04", "05"}
+_VALID_RESPITE_PC_CODES: set[str] = {"01", "02", "03", "04", "05","P", "p", "1", "2", "3", "4", "5", "T1005"}
 
 # SQL SERVER IMPORTS
 

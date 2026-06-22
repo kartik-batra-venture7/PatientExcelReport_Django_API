@@ -1,19 +1,74 @@
 """
-Port of CareValidationService.cs
-
 Validates Personal Care codes and Mobile Text Notes per the
-ExcelScript matching logic used in the original .NET service.
+ExcelScript matching logic
 
 Returns a 3-tuple: (pc_status, mobile_status, validation_result)
 """
 
 import re
 from typing import Optional
-from config.settings import _DENIED_CLS_PATTERNS, _DENIED_RESPITE_PATTERNS, _VALID_CODES, _VALID_RESPITE_PC_CODES
+from config.settings import _VALID_CODES, _VALID_RESPITE_PC_CODES
 
 
 # ---------------------------------------------------------------------------
-# Denied-word lists shifted to config/settings.py
+# Denied-word lists 
+_DENIED_CLS_WORDS_LENAWEE = [
+    "hospital", "medication", "medicine", "sleep", "tv", "television",
+    "doctor", "appointment", "hit", "attack", "police", "assault",
+    "knife", "weapon", "nap", "asleep",
+]
+_DENIED_RESPITE_WORDS_LENAWEE = [
+    "hospital", "appointment", "hit", "attack", "police",
+    "assault", "knife", "weapon", "doctor",
+]
+
+# --- CHS contracts: MCMHA, WCCMH, DWIHN, Calhoun ---
+_DENIED_CLS_WORDS_CHS = [
+    "hospital", "LOA", "leave of absence", "hit", "attack",
+    "police", "assault", "knife", "weapon",
+]
+_DENIED_RESPITE_WORDS_CHS = [
+    "hospital", "appointment", "hit", "attack", "police",
+    "assault", "knife", "weapon", "doctor",
+]
+
+# Contracts that use CHS word lists
+_CHS_CONTRACTS = {
+    "mcmha",
+    "wccmh",
+    "dwihn",
+    "calhoun",
+    "mcmha dhs",
+    "wccmh dhs",
+    "calhoun dhs",
+    "dwihn dhs",
+    "washtenaw county community mental health (ciy)",
+    "monroe community mental health authority (ciy)",
+    "detroit-wayne integrated health network (ciy)",
+    "detroit wayne integrated health network (ciy)",
+    "summit pointe (ciy)",
+}
+
+
+def _build_patterns(words: list[str]) -> list[re.Pattern]:
+    return [re.compile(rf"\b{re.escape(w)}\b", re.IGNORECASE) for w in words]
+
+
+def _get_word_lists(contract: str) -> tuple[list[re.Pattern], list[re.Pattern]]:
+    """
+    Returns (cls_patterns, respite_patterns) based on the contract name.
+    Defaults to Lenawee word lists if contract is not a known CHS contract.
+    """
+    if contract.strip().lower() in _CHS_CONTRACTS:
+        return (
+            _build_patterns(_DENIED_CLS_WORDS_CHS),
+            _build_patterns(_DENIED_RESPITE_WORDS_CHS),
+        )
+    # Lenawee and any unknown contract → existing lists
+    return (
+        _build_patterns(_DENIED_CLS_WORDS_LENAWEE),
+        _build_patterns(_DENIED_RESPITE_WORDS_LENAWEE),
+    )
 # ---------------------------------------------------------------------------
 
 
@@ -29,6 +84,7 @@ class CareValidationService:
         duties_not_performed: bool = False,
         is_personal_care_column_present: bool = True,
         check_respite_for_mobile_text_value: Optional[list] = None,
+        contract: str = "",
     ) -> tuple[str, str, str]:
         """
         Validate a single personal care value + mobile note.
@@ -66,8 +122,9 @@ class CareValidationService:
                     )
 
                 detected_words: set[str] = set()
+                cls_patterns, respite_patterns = _get_word_lists(contract)
                 if not check_respite:
-                    for pattern in _DENIED_CLS_PATTERNS:
+                    for pattern in cls_patterns:
                         for match in pattern.finditer(text):
                             if match.group():
                                 detected_words.add(match.group())
@@ -76,7 +133,7 @@ class CareValidationService:
                     else:
                         mobile_note_value = "CLS words detected - " + ", ".join(detected_words)
                 else:
-                    for pattern in _DENIED_RESPITE_PATTERNS:
+                    for pattern in respite_patterns:
                         for match in pattern.finditer(text):
                             if match.group():
                                 detected_words.add(match.group())
@@ -129,6 +186,7 @@ class CareValidationService:
         duties_not_performed: bool,
         is_personal_care_column_present: bool,
         check_respite_for_mobile_text_value: Optional[list] = None,
+        contract: str = "",
     ) -> tuple[str, str, str]:
         """
         Validate multiple personal care values (from multiple PC rows)
@@ -166,6 +224,7 @@ class CareValidationService:
             duties_not_performed,
             is_personal_care_column_present,
             check_respite_for_mobile_text_value,
+            contract,
         )
 
         # Final validation result

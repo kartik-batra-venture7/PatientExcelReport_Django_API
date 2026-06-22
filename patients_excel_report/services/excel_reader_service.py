@@ -322,6 +322,7 @@ class ExcelReaderService:
                     duties_not_performed,
                     is_personal_care_column_present,
                     check_respite_for_mobile,
+                    contract
                 )
 
                 # Signature detection – patient
